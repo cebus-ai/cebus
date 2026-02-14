@@ -1,6 +1,27 @@
-import { execSync } from 'child_process';
+import { execFileSync } from 'child_process';
 import { readFileSync, readdirSync, statSync, existsSync } from 'fs';
 import { join } from 'path';
+
+const SAFE_GIT_ENV: Record<string, string> = {
+  ...process.env as Record<string, string>,
+  GIT_CONFIG_NOSYSTEM: '1',
+  GIT_ATTR_NOSYSTEM: '1',
+  GIT_TERMINAL_PROMPT: '0',
+};
+
+function safeGitExec(args: string[], cwd: string): string {
+  return execFileSync('git', [
+    '-c', 'core.fsmonitor=false',
+    '-c', 'core.hooksPath=/dev/null',
+    '-c', `safe.directory=${cwd}`,
+    ...args,
+  ], {
+    cwd,
+    encoding: 'utf-8',
+    timeout: 5000,
+    env: SAFE_GIT_ENV,
+  }).trim();
+}
 
 export interface ProjectContext {
   workingDir: string;
@@ -77,23 +98,9 @@ export function buildProjectContext(workingDir: string): ProjectContext {
   }
 
   try {
-    context.gitBranch = execSync('git rev-parse --abbrev-ref HEAD', {
-      cwd: workingDir,
-      encoding: 'utf-8',
-      timeout: 5000,
-    }).trim();
-
-    context.gitStatus = execSync('git status --short', {
-      cwd: workingDir,
-      encoding: 'utf-8',
-      timeout: 5000,
-    }).trim();
-
-    context.recentCommits = execSync('git log --oneline -5', {
-      cwd: workingDir,
-      encoding: 'utf-8',
-      timeout: 5000,
-    }).trim();
+    context.gitBranch = safeGitExec(['rev-parse', '--abbrev-ref', 'HEAD'], workingDir);
+    context.gitStatus = safeGitExec(['status', '--short'], workingDir);
+    context.recentCommits = safeGitExec(['log', '--oneline', '-5'], workingDir);
   } catch {
     // Expected: not a git repo or git not available on PATH
   }
@@ -283,11 +290,7 @@ export function getContextByLevel(
   }
 
   try {
-    context.gitBranch = execSync('git rev-parse --abbrev-ref HEAD', {
-      cwd: workingDir,
-      encoding: 'utf-8',
-      timeout: 5000,
-    }).trim();
+    context.gitBranch = safeGitExec(['rev-parse', '--abbrev-ref', 'HEAD'], workingDir);
   } catch {
     // Expected: not a git repo or git not available on PATH
   }
@@ -314,17 +317,8 @@ export function getContextByLevel(
   }
 
   try {
-    context.gitStatus = execSync('git status --short', {
-      cwd: workingDir,
-      encoding: 'utf-8',
-      timeout: 5000,
-    }).trim();
-
-    context.recentCommits = execSync('git log --oneline -5', {
-      cwd: workingDir,
-      encoding: 'utf-8',
-      timeout: 5000,
-    }).trim();
+    context.gitStatus = safeGitExec(['status', '--short'], workingDir);
+    context.recentCommits = safeGitExec(['log', '--oneline', '-5'], workingDir);
   } catch {
     // Expected: not a git repo or git not available on PATH
   }

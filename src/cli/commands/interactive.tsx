@@ -9,7 +9,11 @@ import {
   addOrchestratorParticipant,
   updateOrchestratorConfig,
 } from '../../core/session';
-import { initializeProviders, getProviderRegistry, registerBuiltInProviders } from '../../providers';
+import {
+  initializeProviders,
+  getProviderRegistry,
+  registerBuiltInProviders,
+} from '../../providers';
 import { saveLastConfig, loadLastConfig, type SavedConfig } from '../../core/config-persistence';
 import { CHAT_MODE_LABELS } from '../ui/constants';
 import type { ChatMode, OrchestratorConfig } from '../../core/types';
@@ -52,19 +56,26 @@ function RestorePrompt({ config, onRestore, onNewSetup }: RestorePromptProps): R
 
       <Box flexDirection="column" marginBottom={1} paddingLeft={2}>
         {modelNames.map((name, i) => (
-          <Text key={i} color="green">{'• '}{name}</Text>
+          <Text key={i} color="green">
+            {'• '}
+            {name}
+          </Text>
         ))}
       </Box>
 
       <Box marginBottom={1}>
         <Text>Chat mode: </Text>
-        <Text bold color="yellow">{modeLabel}</Text>
+        <Text bold color="yellow">
+          {modeLabel}
+        </Text>
       </Box>
 
       {config.orchestratorConfig?.enabled && (
         <Box marginBottom={1}>
           <Text>Orchestrator: </Text>
-          <Text bold color="magenta">{config.orchestratorConfig.modelId}</Text>
+          <Text bold color="magenta">
+            {config.orchestratorConfig.modelId}
+          </Text>
         </Box>
       )}
 
@@ -88,7 +99,7 @@ function InteractiveApp({ workingDir }: InteractiveAppProps): React.ReactElement
     folderAccess: boolean,
     chatMode: ChatMode,
     roleAssignments: Map<string, string>,
-    orchestratorConfig?: OrchestratorConfig | undefined,
+    orchestratorConfig?: OrchestratorConfig | undefined
   ): Promise<void> {
     try {
       await initializeProviders();
@@ -123,7 +134,7 @@ function InteractiveApp({ workingDir }: InteractiveAppProps): React.ReactElement
         if (!provider) continue;
 
         const models = await provider.listModels();
-        const modelInfo = models.find((m) => m.id === modelId);
+        const modelInfo = models.find(m => m.id === modelId);
 
         const role = chatMode === 'role_based' ? roleAssignments.get(spec) : undefined;
 
@@ -137,7 +148,7 @@ function InteractiveApp({ workingDir }: InteractiveAppProps): React.ReactElement
         const svParticipant = addOrchestratorParticipant(
           session.id,
           orchestratorConfig.providerId,
-          orchestratorConfig.modelId,
+          orchestratorConfig.modelId
         );
         updateOrchestratorConfig(session.id, { participantId: svParticipant.id });
       }
@@ -158,7 +169,7 @@ function InteractiveApp({ workingDir }: InteractiveAppProps): React.ReactElement
       savedConfig.folderAccess,
       savedConfig.chatMode,
       roleAssignments,
-      savedConfig.orchestratorConfig,
+      savedConfig.orchestratorConfig
     );
   }
 
@@ -177,7 +188,9 @@ function InteractiveApp({ workingDir }: InteractiveAppProps): React.ReactElement
   if (error) {
     return (
       <Box padding={1}>
-        <Text color="redBright" bold>Error: {error}</Text>
+        <Text color="redBright" bold>
+          Error: {error}
+        </Text>
       </Box>
     );
   }
@@ -205,7 +218,13 @@ function InteractiveApp({ workingDir }: InteractiveAppProps): React.ReactElement
       <Onboarding
         workingDir={workingDir}
         onComplete={(models, folderAccess, chatMode, roleAssignments, orchestratorConfig): void => {
-          void handleOnboardingComplete(models, folderAccess, chatMode, roleAssignments, orchestratorConfig);
+          void handleOnboardingComplete(
+            models,
+            folderAccess,
+            chatMode,
+            roleAssignments,
+            orchestratorConfig
+          );
         }}
         onCancel={handleCancel}
       />
@@ -232,17 +251,15 @@ export async function interactiveCommand(): Promise<void> {
     console.error('\n\x1b[31m⚠️  Cannot start: No AI providers are available!\x1b[0m');
     console.error('\x1b[31mShowing configuration status...\x1b[0m\n');
 
-    // Import and call handleConfig (skip banner - already printed by main)
+    // Import and call handleConfig
     const { handleConfig } = await import('../index');
-    await handleConfig(true);
+    await handleConfig(false);
     process.exit(1);
   }
 
   const workingDir = process.cwd();
 
-  const { waitUntilExit } = render(
-    React.createElement(InteractiveApp, { workingDir })
-  );
+  const { waitUntilExit } = render(React.createElement(InteractiveApp, { workingDir }));
 
   await waitUntilExit();
 }

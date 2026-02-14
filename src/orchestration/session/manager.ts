@@ -11,6 +11,8 @@ import type {
 import { OrchestrationError } from '../types.js';
 import { debug } from '../../core/debug-logger.js';
 
+const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
 export class SessionManager {
   private readonly sessions = new Map<string, SessionRecord>();
   private readonly persistenceDir: string;
@@ -130,6 +132,7 @@ export class SessionManager {
 
   private persistSession(sessionId: string, record: SessionRecord): void {
     try {
+      if (!UUID_RE.test(sessionId)) return;
       if (!existsSync(this.persistenceDir)) {
         mkdirSync(this.persistenceDir, { recursive: true });
       }
@@ -146,6 +149,7 @@ export class SessionManager {
 
   private loadSession(sessionId: string): SessionRecord | null {
     try {
+      if (!UUID_RE.test(sessionId)) return null;
       const filePath = resolve(this.persistenceDir, `${sessionId}.json`);
       if (!existsSync(filePath)) return null;
       const content = readFileSync(filePath, 'utf-8');

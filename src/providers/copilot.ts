@@ -390,7 +390,12 @@ export class CopilotAdapter implements ProviderAdapter {
   private async createNewSession(modelId: string, messages: ContextMessage[]): Promise<void> {
     const sessionId = `cebus-${modelId}-${Date.now()}-${crypto.randomUUID().slice(0, 8)}`;
 
-    const sessionTitle = await this.generateSessionTitle(messages, modelId);
+    const modelName = modelId.split('-').slice(-1)[0];
+    const timestamp = new Date().toLocaleTimeString('en-US', {
+      hour: '2-digit',
+      minute: '2-digit',
+    });
+    const sessionTitle = `Cebus Chat (${modelName}) - ${timestamp}`;
 
     const systemMessage = messages.find(m => m.role === 'system');
     const systemContent = systemMessage ? systemMessage.content : undefined;
@@ -488,64 +493,6 @@ export class CopilotAdapter implements ProviderAdapter {
     return this.lastProcessedMessageIndex;
   }
 
-  private async generateSessionTitle(messages: ContextMessage[], modelId: string): Promise<string> {
-    const modelName = modelId.split('-').slice(-1)[0];
-    const timestamp = new Date().toLocaleTimeString('en-US', {
-      hour: '2-digit',
-      minute: '2-digit',
-    });
-    const defaultTitle = `Cebus Chat (${modelName}) - ${timestamp}`;
-
-    // Find first substantial user message (skip greetings)
-    const greetings = ['hi', 'hello', 'hey', 'yo', 'sup', 'greetings', 'ih'];
-    const substantialMsg = messages.find(m => {
-      if (m.role !== 'user') return false;
-      const text = m.content.toLowerCase().trim();
-      // Skip if it's just a greeting or too short
-      return text.length > 10 && !greetings.includes(text);
-    });
-
-    // No substantial message - use default
-    if (!substantialMsg) {
-      return defaultTitle;
-    }
-
-    const userText = substantialMsg.content;
-
-    // Try to generate a meaningful title using the AI
-    try {
-      const tempSession = await this.client.createSession(
-        modelId === 'copilot' ? {} : { model: modelId }
-      );
-
-      const titlePrompt = `Generate a concise title (4-6 words) for a conversation about: "${userText.slice(0, 200)}"\n\nRespond with ONLY the title, no quotes or punctuation.`;
-
-      const response = await tempSession.sendAndWait({ prompt: titlePrompt });
-      const generatedTitle = (response?.data?.content ?? '').trim().replace(/['"`.]/g, '');
-
-      // Clean up temp session
-      if (tempSession.destroy) {
-        await tempSession.destroy();
-      }
-
-      // Validate the title is meaningful (not just generic phrases)
-      const genericPhrases = ['conversation', 'chat', 'discussion', 'talk', 'session'];
-      const isGeneric = genericPhrases.some(phrase =>
-        generatedTitle.toLowerCase().includes(phrase)
-      );
-
-      // Use generated title only if it's reasonable and meaningful
-      if (generatedTitle.length > 5 && generatedTitle.length < 60 && !isGeneric) {
-        return `${generatedTitle} - Cebus (${modelName})`;
-      }
-
-      // Not meaningful enough - use default
-      return defaultTitle;
-    } catch {
-      // Failed to generate - use default
-      return defaultTitle;
-    }
-  }
 
   private mapError(error: unknown): ProviderError {
     // Copilot-specific error enrichment before delegating to shared mapper

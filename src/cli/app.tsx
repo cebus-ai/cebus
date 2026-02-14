@@ -16,15 +16,19 @@ import { CONTENT_PADDING } from './ui/constants';
 import { HelpView } from './components/chat/HelpView';
 import { StatusBar } from './components/chat/StatusBar';
 import { StaticEntryRenderer } from './components/chat/StaticEntryRenderer';
-import { OrchestratorMessagesView, PlanProgressView, PlanApprovalView } from './components/chat/OrchestratorMessages';
+import {
+  OrchestratorMessagesView,
+  PlanProgressView,
+  PlanApprovalView,
+} from './components/chat/OrchestratorMessages';
 import { UrlConfirmation } from './components/chat/UrlConfirmation';
 import type { StaticEntry, AppView } from './chat-types';
-import { useTerminalResize } from './hooks/useTerminalResize';
 import { useSessionData } from './hooks/useSessionData';
 import { useMessageRefresh } from './hooks/useMessageRefresh';
 import { useErrorTimeout } from './hooks/useErrorTimeout';
 import { useCommands } from './hooks/useCommands';
 import { useStreamProcessor } from './hooks/useStreamProcessor';
+import { useTerminalResize } from './hooks/useTerminalResize';
 
 export interface ChatAppProps {
   /** Session ID to use */
@@ -59,6 +63,7 @@ export function ChatApp({
   resumeThreadId,
 }: ChatAppProps): React.ReactElement {
   const { exit } = useApp();
+  useTerminalResize();
 
   const [messages, setMessages] = useState<Message[]>([]);
   const [participants, setParticipants] = useState<Participant[]>([]);
@@ -71,22 +76,36 @@ export function ChatApp({
   const staticIds = useRef(new Set<string>());
   const [activityExpanded, setActivityExpanded] = useState(false);
 
-  useTerminalResize();
-
   useSessionData({
-    sessionId, title, staticIds, setMessages, setParticipants, setStaticEntries, setError,
+    sessionId,
+    title,
+    staticIds,
+    setMessages,
+    setParticipants,
+    setStaticEntries,
+    setError,
   });
 
   const stream = useStreamProcessor({
-    sessionId, participants, resumeMode, resumeSummary, resumeThreadId,
-    staticIds, setStaticEntries, setMessages, setError,
+    sessionId,
+    participants,
+    resumeMode,
+    resumeSummary,
+    resumeThreadId,
+    staticIds,
+    setStaticEntries,
+    setMessages,
+    setError,
   });
 
   useMessageRefresh({
-    sessionId, streamingParticipants: stream.streamingParticipants, setMessages,
+    sessionId,
+    streamingParticipants: stream.streamingParticipants,
+    setMessages,
   });
 
-  const isStreaming = stream.streamingParticipants.length > 0 || stream.waitingParticipants.length > 0;
+  const isStreaming =
+    stream.streamingParticipants.length > 0 || stream.waitingParticipants.length > 0;
 
   // Promote completed messages to Static
   useEffect(() => {
@@ -156,14 +175,22 @@ export function ChatApp({
   }, [exit, participants, sessionId]);
 
   const handleCommand = useCommands({
-    sessionId, participants, handleExit,
-    setCurrentView, setMessages, setParticipants, setError, setContextLevelState,
+    sessionId,
+    participants,
+    handleExit,
+    setCurrentView,
+    setMessages,
+    setParticipants,
+    setError,
+    setContextLevelState,
   });
 
   // Toggle activity log expand/collapse with Tab while streaming
   useInput(
-    (_input, key) => { if (key.tab) setActivityExpanded(prev => !prev); },
-    { isActive: isStreaming },
+    (_input, key) => {
+      if (key.tab) setActivityExpanded(prev => !prev);
+    },
+    { isActive: isStreaming }
   );
 
   // Auto-collapse when streaming ends
@@ -172,8 +199,10 @@ export function ChatApp({
   }, [isStreaming]);
 
   useInput(
-    (_input, key) => { if (key.escape) setCurrentView('chat'); },
-    { isActive: currentView !== 'chat' },
+    (_input, key) => {
+      if (key.escape) setCurrentView('chat');
+    },
+    { isActive: currentView !== 'chat' }
   );
 
   useInput(
@@ -182,7 +211,12 @@ export function ChatApp({
       if (lower === 'y') stream.handleUrlConfirmation(true);
       else if (lower === 'n') stream.handleUrlConfirmation(false);
     },
-    { isActive: stream.pendingUrlConfirmation !== null && stream.pendingToolApproval === null && stream.pendingPlanApproval === null },
+    {
+      isActive:
+        stream.pendingUrlConfirmation !== null &&
+        stream.pendingToolApproval === null &&
+        stream.pendingPlanApproval === null,
+    }
   );
 
   useInput(
@@ -195,20 +229,29 @@ export function ChatApp({
 
       if (approval) {
         const planId = `plan-${Date.now()}`;
-        setStaticEntries(prev => [...prev, { id: planId, kind: 'plan' as const, plan: approval.plan, approved }]);
+        setStaticEntries(prev => [
+          ...prev,
+          { id: planId, kind: 'plan' as const, plan: approval.plan, approved },
+        ]);
       }
 
       stream.setPendingPlanApproval(null);
       if (!approved) {
-        stream.setOrchestratorMessages(prev => [...prev, { kind: 'status', content: 'Plan rejected by user.', timestamp: new Date() }]);
+        stream.setOrchestratorMessages(prev => [
+          ...prev,
+          { kind: 'status', content: 'Plan rejected by user.', timestamp: new Date() },
+        ]);
         stream.setPlanProgress(null);
       } else if (approval) {
-        stream.setOrchestratorMessages(prev => [...prev, { kind: 'status', content: 'Plan approved. Executing...', timestamp: new Date() }]);
+        stream.setOrchestratorMessages(prev => [
+          ...prev,
+          { kind: 'status', content: 'Plan approved. Executing...', timestamp: new Date() },
+        ]);
         stream.setPlanProgress({ plan: approval.plan, completed: 0, activeAgent: null });
         void stream.sendMessage(approval.originalMessage, undefined, false, approval.analysis);
       }
     },
-    { isActive: stream.pendingPlanApproval !== null },
+    { isActive: stream.pendingPlanApproval !== null }
   );
 
   useErrorTimeout(error, setError);
@@ -229,6 +272,10 @@ export function ChatApp({
   }
 
   const modelCount = participants.filter(p => p.type === 'model').length;
+  const terminalCols = process.stdout.columns ?? 120;
+  const terminalRows = process.stdout.rows ?? 40;
+  const compactUi = terminalCols < 90 || terminalRows < 24;
+  const divider = '─'.repeat(Math.max(terminalCols - 2, 1));
   const currentSession = getSession(sessionId);
   const sessionChatMode = currentSession?.chatMode;
   const orchestratorModelId = currentSession?.orchestratorConfig?.enabled
@@ -242,38 +289,38 @@ export function ChatApp({
     streamingParticipants: stream.streamingParticipants.length,
   });
 
-  const inputDisabled = stream.pendingUrlConfirmation !== null || stream.pendingToolApproval !== null || stream.pendingPlanApproval !== null;
-
-  if (
+  const inputDisabled =
+    stream.pendingUrlConfirmation !== null ||
+    stream.pendingToolApproval !== null ||
+    stream.pendingPlanApproval !== null;
+  const isEmptyState =
     messages.length === 0 &&
     stream.streamingParticipants.length === 0 &&
-    stream.waitingParticipants.length === 0
-  ) {
-    return (
-      <Box flexDirection="column">
-        <ChatEmptyState />
-        <Box paddingX={1}>
-          <Text dimColor>{'─'.repeat(Math.max((process.stdout.columns ?? 120) - 2, 40))}</Text>
-        </Box>
-        <Box flexDirection="column" paddingX={1}>
-          <StatusBar title={title} participantCount={participants.length} modelCount={modelCount} chatMode={sessionChatMode} orchestratorModelId={orchestratorModelId} isStreaming={isStreaming} />
-          <MessageInput onSubmit={stream.handleSubmit} onExit={handleExit} onCommand={handleCommand} participants={participants} selectedTarget={selectedTarget} disabled={inputDisabled} isStreaming={isStreaming} onCancelStream={stream.cancelAll} />
-        </Box>
-      </Box>
-    );
-  }
+    stream.waitingParticipants.length === 0;
 
   return (
     <Box flexDirection="column">
-      <Static items={staticEntries}>
-        {entry => (
-          <StaticEntryRenderer key={entry.id} entry={entry} participantMap={participantMap} orchestratorParticipantId={orchestratorParticipantId} showTimestamps={showTimestamps} />
-        )}
-      </Static>
+      {isEmptyState ? (
+        <ChatEmptyState compact={compactUi} />
+      ) : (
+        <Static items={staticEntries}>
+          {entry => (
+            <StaticEntryRenderer
+              key={entry.id}
+              entry={entry}
+              participantMap={participantMap}
+              orchestratorParticipantId={orchestratorParticipantId}
+              showTimestamps={showTimestamps}
+            />
+          )}
+        </Static>
+      )}
 
       {(() => {
         // Deduplicate: a participant may appear in both streaming and waiting lists
-        const allActiveIds = [...new Set([...stream.streamingParticipants, ...stream.waitingParticipants])];
+        const allActiveIds = [
+          ...new Set([...stream.streamingParticipants, ...stream.waitingParticipants]),
+        ];
 
         return allActiveIds.length > 0 ? (
           <Box flexDirection="column" marginTop={1}>
@@ -284,12 +331,17 @@ export function ChatApp({
 
               if (isWriting) {
                 // Writing — show partial content with cursor
-                const partial = buf.inCodeBlock ? buf.codeBlockAccum + buf.unflushed : buf.unflushed;
+                const partial = buf.inCodeBlock
+                  ? buf.codeBlockAccum + buf.unflushed
+                  : buf.unflushed;
                 return (
                   <Box key={pid} flexDirection="column" marginBottom={1}>
                     <Box paddingLeft={CONTENT_PADDING}>
                       <Text>
-                        {wrapAnsi(partial, (process.stdout.columns ?? 80) - CONTENT_PADDING, { trim: true })}<Text color="yellow">▌</Text>
+                        {wrapAnsi(partial, (process.stdout.columns ?? 80) - CONTENT_PADDING, {
+                          trim: true,
+                        })}
+                        <Text color="yellow">▌</Text>
                       </Text>
                     </Box>
                   </Box>
@@ -303,7 +355,12 @@ export function ChatApp({
               const isWaiting = !stream.streamingParticipants.includes(pid);
               return (
                 <Box key={pid} marginBottom={1}>
-                  <ThinkingIndicator participants={[participant]} agentActivity={stream.agentActivity} waiting={isWaiting} expanded={activityExpanded} />
+                  <ThinkingIndicator
+                    participants={[participant]}
+                    agentActivity={stream.agentActivity}
+                    waiting={isWaiting}
+                    expanded={activityExpanded}
+                  />
                 </Box>
               );
             })}
@@ -318,17 +375,27 @@ export function ChatApp({
         </Box>
       )}
 
-      <OrchestratorMessagesView messages={stream.orchestratorMessages} orchestratorModelId={orchestratorModelId} showTimestamps={showTimestamps} />
+      <OrchestratorMessagesView
+        messages={stream.orchestratorMessages}
+        orchestratorModelId={orchestratorModelId}
+        showTimestamps={showTimestamps}
+      />
       {stream.planProgress && <PlanProgressView planProgress={stream.planProgress} />}
-      {stream.pendingPlanApproval && <PlanApprovalView pendingPlanApproval={stream.pendingPlanApproval} />}
+      {stream.pendingPlanApproval && (
+        <PlanApprovalView pendingPlanApproval={stream.pendingPlanApproval} />
+      )}
 
       {error && (
         <Box marginY={1}>
-          <Text color="redBright" bold>Error: {error}</Text>
+          <Text color="redBright" bold>
+            Error: {error}
+          </Text>
         </Box>
       )}
 
-      {stream.pendingUrlConfirmation && <UrlConfirmation confirmation={stream.pendingUrlConfirmation} />}
+      {stream.pendingUrlConfirmation && (
+        <UrlConfirmation confirmation={stream.pendingUrlConfirmation} />
+      )}
 
       {stream.pendingToolApproval && (
         <ToolApprovalPrompt
@@ -340,12 +407,32 @@ export function ChatApp({
         />
       )}
 
-      <Box marginTop={1} paddingX={1}>
-        <Text dimColor>{'─'.repeat(Math.max((process.stdout.columns ?? 120) - 2, 40))}</Text>
-      </Box>
+      {!compactUi && (
+        <Box marginTop={1} paddingX={1}>
+          <Text dimColor>{divider}</Text>
+        </Box>
+      )}
       <Box flexDirection="column" paddingX={1}>
-        <StatusBar title={title} participantCount={participants.length} modelCount={modelCount} chatMode={sessionChatMode} orchestratorModelId={orchestratorModelId} isStreaming={isStreaming} />
-        <MessageInput onSubmit={stream.handleSubmit} onExit={handleExit} onCommand={handleCommand} participants={participants} selectedTarget={selectedTarget} disabled={inputDisabled} isStreaming={isStreaming} onCancelStream={stream.cancelAll} />
+        <StatusBar
+          title={title}
+          participantCount={participants.length}
+          modelCount={modelCount}
+          chatMode={sessionChatMode}
+          orchestratorModelId={orchestratorModelId}
+          isStreaming={isStreaming}
+          compact={compactUi}
+        />
+        <MessageInput
+          onSubmit={stream.handleSubmit}
+          onExit={handleExit}
+          onCommand={handleCommand}
+          participants={participants}
+          selectedTarget={selectedTarget}
+          disabled={inputDisabled}
+          isStreaming={isStreaming}
+          onCancelStream={stream.cancelAll}
+          compact={compactUi}
+        />
       </Box>
     </Box>
   );

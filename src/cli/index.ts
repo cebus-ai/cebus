@@ -19,10 +19,16 @@ if (typeof (globalThis as { Bun?: unknown }).Bun !== 'undefined') {
   console.error('\x1b[31m│  checkpointing.                                        │\x1b[0m');
   console.error('\x1b[31m│                                                        │\x1b[0m');
   console.error('\x1b[31m│  Please install and use Node.js instead:               │\x1b[0m');
-  console.error('\x1b[31m│    \x1b[36mbrew install node\x1b[31m                                 │\x1b[0m');
-  console.error('\x1b[31m│    \x1b[36mnpm run dev\x1b[31m                                      │\x1b[0m');
+  console.error(
+    '\x1b[31m│    \x1b[36mbrew install node\x1b[31m                                 │\x1b[0m'
+  );
+  console.error(
+    '\x1b[31m│    \x1b[36mnpm run dev\x1b[31m                                      │\x1b[0m'
+  );
   console.error('\x1b[31m│                                                        │\x1b[0m');
-  console.error('\x1b[31m│  Track Bun support: \x1b[2mhttps://github.com/oven-sh/bun/issues/4290\x1b[0m\x1b[31m │\x1b[0m');
+  console.error(
+    '\x1b[31m│  Track Bun support: \x1b[2mhttps://github.com/oven-sh/bun/issues/4290\x1b[0m\x1b[31m │\x1b[0m'
+  );
   console.error('\x1b[31m╰────────────────────────────────────────────────────────╯\x1b[0m\n');
   process.exit(1);
 }
@@ -181,14 +187,26 @@ export async function handleConfig(skipBanner = false): Promise<void> {
 
   if (!copilotFullyConfigured) {
     console.log('    \x1b[2m├─ gh CLI:', ghCliInstalled ? '✓' : '✗ (brew install gh)\x1b[0m');
-    console.log('    \x1b[2m├─ gh copilot:', ghCopilotInstalled ? '✓' : '✗ (gh auth refresh --scopes copilot)\x1b[0m');
-    console.log('    \x1b[2m└─ Copilot SDK:', copilotSdkAvailable ? '✓' : '✗ (npm install @github/copilot-sdk)\x1b[0m');
+    console.log(
+      '    \x1b[2m├─ gh copilot:',
+      ghCopilotInstalled ? '✓' : '✗ (gh auth refresh --scopes copilot)\x1b[0m'
+    );
+    console.log(
+      '    \x1b[2m└─ Copilot SDK:',
+      copilotSdkAvailable ? '✓' : '✗ (npm install @github/copilot-sdk)\x1b[0m'
+    );
   }
 
   console.log('\n\x1b[2m💡 Provider tip:\x1b[0m');
-  console.log('  \x1b[36mGitHub Copilot\x1b[0m — Worker tools built-in + multi-provider (GPT-5.2, Claude Opus, Sonnet)');
-  console.log('  \x1b[2mAPI keys\x1b[0m       — Single provider, need to configure MCP servers for tools');
-  console.log('  \x1b[2mOllama\x1b[0m         — Free & local, need to configure MCP servers for tools');
+  console.log(
+    '  \x1b[36mGitHub Copilot\x1b[0m — Worker tools built-in + multi-provider (GPT-5.2, Claude Opus, Sonnet)'
+  );
+  console.log(
+    '  \x1b[2mAPI keys\x1b[0m       — Single provider, need to configure MCP servers for tools'
+  );
+  console.log(
+    '  \x1b[2mOllama\x1b[0m         — Free & local, need to configure MCP servers for tools'
+  );
 
   console.log('\n\x1b[2mTo configure API keys (create .env file):\x1b[0m');
   console.log('  cp .env.example .env');
@@ -208,14 +226,21 @@ export async function handleConfig(skipBanner = false): Promise<void> {
         console.log('    2. gh auth refresh --hostname github.com --scopes copilot');
       }
       if (!copilotSdkAvailable) {
-        console.log('    ' + (ghCopilotInstalled ? '1' : '3') + '. npm install @github/copilot-sdk');
+        console.log(
+          '    ' + (ghCopilotInstalled ? '1' : '3') + '. npm install @github/copilot-sdk'
+        );
       }
     }
   }
   console.log('');
 
   // Check if at least one provider is available
-  const hasAnyProvider = openaiAvailable || anthropicAvailable || geminiAvailable || ollamaAvailable || copilotFullyConfigured;
+  const hasAnyProvider =
+    openaiAvailable ||
+    anthropicAvailable ||
+    geminiAvailable ||
+    ollamaAvailable ||
+    copilotFullyConfigured;
 
   if (!hasAnyProvider) {
     console.log('\x1b[31m╭──────────────────────────────────────────────────╮\x1b[0m');
@@ -228,7 +253,9 @@ export async function handleConfig(skipBanner = false): Promise<void> {
     console.log('\x1b[31m╰──────────────────────────────────────────────────╯\x1b[0m\n');
     console.log('\x1b[33mQuick setup options:\x1b[0m');
     console.log('  1. \x1b[36mGitHub Copilot\x1b[0m \x1b[32m(recommended)\x1b[0m:');
-    console.log('     \x1b[2m• Built-in worker tools + multi-provider access (GPT-5.2, Claude, etc.)\x1b[0m');
+    console.log(
+      '     \x1b[2m• Built-in worker tools + multi-provider access (GPT-5.2, Claude, etc.)\x1b[0m'
+    );
     console.log('     brew install gh');
     console.log('     gh auth login');
     console.log('     gh auth refresh --hostname github.com --scopes copilot');
@@ -250,7 +277,7 @@ export async function handleConfig(skipBanner = false): Promise<void> {
 }
 
 function promptResumeMode(): Promise<'full' | 'summary' | 'none'> {
-  return new Promise((resolve) => {
+  return new Promise(resolve => {
     const rl = createInterface({ input: process.stdin, output: process.stdout });
 
     console.log('How should models receive prior context?');
@@ -259,7 +286,7 @@ function promptResumeMode(): Promise<'full' | 'summary' | 'none'> {
     console.log('  \x1b[1m[N]\x1b[0m None    \x1b[2m— models start fresh\x1b[0m');
     console.log('');
 
-    rl.question('Choice [F/S/N]: ', (answer) => {
+    rl.question('Choice [F/S/N]: ', answer => {
       rl.close();
       const ch = answer.trim().toLowerCase();
       if (ch === 's') {
@@ -289,9 +316,14 @@ async function handleResume(prefix: string): Promise<void> {
   const messages = getMessages(sessionId);
   const participants = getParticipants(sessionId);
   const modelCount = participants.filter(p => p.type === 'model').length;
-  const modelNames = participants.filter(p => p.type === 'model').map(p => p.displayName).join(', ');
+  const modelNames = participants
+    .filter(p => p.type === 'model')
+    .map(p => p.displayName)
+    .join(', ');
 
-  console.log(`\x1b[2mResuming session ${sessionId.slice(0, 8)} (${messages.length} messages, ${modelCount} model${modelCount !== 1 ? 's' : ''}: ${modelNames})\x1b[0m\n`);
+  console.log(
+    `\x1b[2mResuming session ${sessionId.slice(0, 8)} (${messages.length} messages, ${modelCount} model${modelCount !== 1 ? 's' : ''}: ${modelNames})\x1b[0m\n`
+  );
 
   const resumeMode = await promptResumeMode();
   console.log('');
@@ -329,8 +361,6 @@ async function handleResume(prefix: string): Promise<void> {
 }
 
 async function handleChat(args: string[]): Promise<void> {
-  printBanner(VERSION);
-
   registerBuiltInProviders();
   const registry = getProviderRegistry();
   const providers = registry.getAll();

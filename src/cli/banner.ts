@@ -67,6 +67,20 @@ const cebusArt = buildCebusLines();
 
 export function printBanner(version: string): void {
   const W = 57;
+  const terminalWidth = process.stdout.columns ?? 80;
+
+  // Narrow terminal fallback: avoid large ASCII art that wraps/clips badly.
+  if (terminalWidth < W + 4) {
+    const versionLine = `${colors.dim}v${version}${colors.reset}`;
+    const tagline = `${colors.dim}All your AI models, one conversation${colors.reset}`;
+
+    console.log('');
+    console.log(`${colors.bold}${colors.cyan}Cebus${colors.reset} ${versionLine}`);
+    console.log(tagline);
+    console.log('');
+    return;
+  }
+
   const border = '─'.repeat(W);
   const empty = `${colors.cyan}│${colors.reset}${' '.repeat(W)}${colors.cyan}│${colors.reset}`;
 

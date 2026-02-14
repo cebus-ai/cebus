@@ -1,10 +1,9 @@
 import React, { useState, useCallback, useMemo, useEffect, useRef } from 'react';
-import { Box, Text, useInput } from 'ink';
+import { Box, Text, useInput, useStdout } from 'ink';
 import type { Participant } from '../../core/types';
 import { parseMentions as coreParseMentions } from '../../core/mention-parser';
 import { getRoleTemplate } from '../../core/role-templates';
 import { useBracketedPaste } from '../hooks/useBracketedPaste';
-
 
 export interface MessageInputProps {
   /** Callback when message is submitted */
@@ -33,6 +32,9 @@ export interface MessageInputProps {
 
   /** Whether agents are currently streaming */
   isStreaming?: boolean | undefined;
+
+  /** Compact rendering for small terminals */
+  compact?: boolean | undefined;
 }
 
 interface SlashCommand {
@@ -107,7 +109,9 @@ export function MessageInput({
   selectedTarget = 'all',
   onCancelStream,
   isStreaming = false,
+  compact = false,
 }: MessageInputProps): React.ReactElement {
+  const { stdout } = useStdout();
   const [value, setValue] = useState('');
   const [cursorPosition, setCursorPosition] = useState(0);
   const [autocompleteIndex, setAutocompleteIndex] = useState(0);
@@ -359,7 +363,7 @@ export function MessageInput({
       // Large input chunk = paste — store separately, show indicator
       const PASTE_THRESHOLD = 150;
       if (input.length > PASTE_THRESHOLD) {
-        setPastedContent(prev => prev ? prev + input : input);
+        setPastedContent(prev => (prev ? prev + input : input));
         return;
       }
 
@@ -371,9 +375,7 @@ export function MessageInput({
   const handleSubmit = useCallback(() => {
     const typed = value.trim();
     const pasted = pastedContent?.trim() ?? '';
-    const fullMessage = typed && pasted
-      ? `${typed}\n\n${pasted}`
-      : typed || pasted;
+    const fullMessage = typed && pasted ? `${typed}\n\n${pasted}` : typed || pasted;
 
     if (!fullMessage) return;
 
@@ -431,45 +433,94 @@ export function MessageInput({
     }
   }
 
+  const termCols = stdout?.columns ?? 120;
+  const PROMPT_WIDTH = 2; // "❯ " or "  "
+
+  /**
+   * Compute a horizontal viewport for a line so text scrolls around the cursor
+   * instead of letting the terminal hard-wrap long lines.
+   */
+  const viewportFor = (
+    line: string,
+    col: number,
+    extraPrefix: number,
+  ): { visible: string; viewCol: number; scrolled: boolean } => {
+    const avail = termCols - PROMPT_WIDTH - extraPrefix - 1;
+    if (avail <= 0 || line.length <= avail) {
+      return { visible: line, viewCol: col, scrolled: false };
+    }
+    let start = col - Math.floor(avail / 2);
+    if (start < 0) start = 0;
+    if (start + avail > line.length) start = Math.max(line.length - avail, 0);
+    return {
+      visible: line.slice(start, start + avail),
+      viewCol: col - start,
+      scrolled: start > 0,
+    };
+  };
+
   return (
     <Box flexDirection="column">
       {showPlaceholder ? (
         <Box>
-          <Text color={disabled ? 'gray' : 'yellow'} bold>{'❯ '}</Text>
+          <Text color={disabled ? 'gray' : 'yellow'} bold>
+            {'❯ '}
+          </Text>
           {selectedTarget !== 'all' && <Text color="magenta">@{selectedTarget.nickname} </Text>}
           {pastedContent && (
             <Text color="cyan" dimColor>
-              [Pasted {pastedContent.length.toLocaleString()} chars{pastedContent.includes('\n') ? `, ${pastedContent.split('\n').length} lines` : ''}]{' '}
+              [Pasted {pastedContent.length.toLocaleString()} chars
+              {pastedContent.includes('\n') ? `, ${pastedContent.split('\n').length} lines` : ''}
+              ]{' '}
             </Text>
           )}
-          <Text backgroundColor="gray" color="white">{' '}</Text>
+          <Text backgroundColor="gray" color="white">
+            {' '}
+          </Text>
           <Text dimColor>{placeholder}</Text>
         </Box>
       ) : (
         lines.map((line, lineIdx) => {
           const isFirst = lineIdx === 0;
           const isCursorLine = lineIdx === cursorLine;
+
+          let extraPrefix = 0;
+          if (isFirst && selectedTarget !== 'all') {
+            extraPrefix += selectedTarget.nickname.length + 2; // "@nick "
+          }
+
+          const vp = isCursorLine
+            ? viewportFor(line, cursorCol, extraPrefix)
+            : viewportFor(line, 0, extraPrefix);
+
           return (
             <Box key={lineIdx}>
               <Text color={disabled ? 'gray' : 'yellow'} bold>
                 {isFirst ? '❯ ' : '  '}
               </Text>
-              {isFirst && selectedTarget !== 'all' && <Text color="magenta">@{selectedTarget.nickname} </Text>}
+              {isFirst && selectedTarget !== 'all' && (
+                <Text color="magenta">@{selectedTarget.nickname} </Text>
+              )}
               {isFirst && pastedContent && (
                 <Text color="cyan" dimColor>
-                  [Pasted {pastedContent.length.toLocaleString()} chars{pastedContent.includes('\n') ? `, ${pastedContent.split('\n').length} lines` : ''}]{' '}
+                  [Pasted {pastedContent.length.toLocaleString()} chars
+                  {pastedContent.includes('\n')
+                    ? `, ${pastedContent.split('\n').length} lines`
+                    : ''}
+                  ]{' '}
                 </Text>
               )}
+              {vp.scrolled && <Text dimColor>{'…'}</Text>}
               {isCursorLine ? (
                 <>
-                  <Text>{line.slice(0, cursorCol)}</Text>
+                  <Text>{vp.visible.slice(0, vp.viewCol)}</Text>
                   <Text backgroundColor="gray" color="white">
-                    {line[cursorCol] ?? ' '}
+                    {vp.visible[vp.viewCol] ?? ' '}
                   </Text>
-                  <Text>{line.slice(cursorCol + 1)}</Text>
+                  <Text>{vp.visible.slice(vp.viewCol + 1)}</Text>
                 </>
               ) : (
-                <Text>{line}</Text>
+                <Text>{vp.visible}</Text>
               )}
             </Box>
           );
@@ -524,7 +575,7 @@ export function MessageInput({
                   const actualIndex = startIdx + visibleIndex;
                   const isSelected = actualIndex === autocompleteIndex;
                   const roleLabel = participant.role
-                    ? getRoleTemplate(participant.role)?.label ?? participant.role
+                    ? (getRoleTemplate(participant.role)?.label ?? participant.role)
                     : undefined;
                   return (
                     <Box key={participant.id}>
@@ -539,12 +590,7 @@ export function MessageInput({
                         {' '}
                         ({participant.displayName})
                       </Text>
-                      {roleLabel && (
-                        <Text color="#02e3ff">
-                          {' '}
-                          [{roleLabel}]
-                        </Text>
-                      )}
+                      {roleLabel && <Text color="#02e3ff"> [{roleLabel}]</Text>}
                     </Box>
                   );
                 })}
@@ -559,9 +605,11 @@ export function MessageInput({
         </Box>
       )}
 
-      <Box marginTop={1}>
-        <Text dimColor>{'─'.repeat(Math.max((process.stdout.columns ?? 120) - 2, 40))}</Text>
-      </Box>
+      {!compact && (
+        <Box marginTop={1}>
+          <Text dimColor>{'─'.repeat(Math.max((stdout?.columns ?? 120) - 2, 1))}</Text>
+        </Box>
+      )}
 
       <Box>
         {exitHintActive && !disabled ? (
@@ -570,11 +618,12 @@ export function MessageInput({
           <Text dimColor>
             {disabled
               ? 'Waiting for response... (you can type ahead)'
-              : 'Enter send • Ctrl+J/Ctrl+Enter newline • Tab complete • ↑↓ history • Esc clear/exit'}
+              : compact
+                ? 'Enter send • Tab complete • Esc clear/exit'
+                : 'Enter send • Ctrl+J/Ctrl+Enter newline • Tab complete • ↑↓ history • Esc clear/exit'}
           </Text>
         )}
       </Box>
     </Box>
   );
 }
-

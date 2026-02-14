@@ -3,7 +3,7 @@ import { Box, Text } from 'ink';
 import wrapAnsi from 'wrap-ansi';
 import path from 'path';
 import { CONTENT_PADDING } from '../ui/constants';
-import { fileLink } from '../ui/terminal-link';
+import { fileLink, webLink } from '../ui/terminal-link';
 
 export interface MarkdownTextProps {
   /** The markdown content to render */
@@ -31,7 +31,8 @@ type Block = CodeBlock | TextBlock;
 type InlineSegment =
   | { type: 'text'; content: string }
   | { type: 'code'; content: string }
-  | { type: 'bold'; content: string };
+  | { type: 'bold'; content: string }
+  | { type: 'link'; content: string; url: string };
 
 /**
  * Detect file/folder paths in text and wrap them in OSC 8 clickable hyperlinks.
@@ -42,7 +43,7 @@ function linkifyPaths(text: string): string {
 
   // Match: absolute Windows paths, absolute Unix paths, or relative paths with extension/trailing slash
   // Avoid matching inside existing OSC 8 sequences
-  const pathPattern = /(?<![/\w\\])([A-Z]:\\[^\s,;:!?"'()[\]{}]+)|(?<![/\w\\])(\/(?:home|usr|tmp|var|opt|etc|mnt)[^\s,;:!?"'()[\]{}]+)|((?:\.\/|\.\.\/)?(?:[a-zA-Z_@.][a-zA-Z0-9_@.\-]*\/)*[a-zA-Z0-9_@.\-]+\.[a-zA-Z0-9]+(?:\/[^\s,;:!?"'()[\]{}]*)?|(?:\.\/|\.\.\/)?(?:[a-zA-Z_@.][a-zA-Z0-9_@.\-]*\/)+)/g;
+  const pathPattern = /(?<![/\w\\])([A-Z]:\\[^\s,;:!?"'()[\]{}]+)|(?<![/\w\\])(\/(?:home|usr|tmp|var|opt|etc|mnt)[^\s,;:!?"'()[\]{}]+)|((?:\.\/|\.\.\/)?(?:[a-zA-Z_@.][a-zA-Z0-9_@.\-]*\/)*[a-zA-Z_@][a-zA-Z0-9_@.\-]*\.[a-zA-Z]{2,}(?:\/[^\s,;:!?"'()[\]{}]*)?|(?:\.\/|\.\.\/)?(?:[a-zA-Z_@.][a-zA-Z0-9_@.\-]*\/)+)/g;
 
   return text.replace(pathPattern, (match) => {
     // Skip if already inside an OSC 8 sequence
@@ -91,7 +92,7 @@ function parseBlocks(content: string): Block[] {
 
 function parseInline(text: string): InlineSegment[] {
   const segments: InlineSegment[] = [];
-  const regex = /(`[^`]+`)|(\*\*[^*]+\*\*)/g;
+  const regex = /(`[^`]+`)|(\*\*[^*]+\*\*)|(\[([^\]]+)\]\(([^)]+)\))/g;
   let lastIndex = 0;
 
   let match: RegExpExecArray | null;
@@ -104,6 +105,8 @@ function parseInline(text: string): InlineSegment[] {
       segments.push({ type: 'code', content: match[1].slice(1, -1) });
     } else if (match[2]) {
       segments.push({ type: 'bold', content: match[2].slice(2, -2) });
+    } else if (match[3]) {
+      segments.push({ type: 'link', content: match[4] ?? '', url: match[5] ?? '' });
     }
 
     lastIndex = match.index + match[0].length;
@@ -312,6 +315,19 @@ function splitTextParts(text: string): TextPart[] {
   return parts;
 }
 
+function renderInlineSegment(seg: InlineSegment, key: number, applyLinkify = true): React.ReactElement {
+  switch (seg.type) {
+    case 'code':
+      return <Text key={key} color="cyan">{applyLinkify ? linkifyPaths(seg.content) : seg.content}</Text>;
+    case 'bold':
+      return <Text key={key} bold>{seg.content}</Text>;
+    case 'link':
+      return <Text key={key}>{webLink(seg.content, seg.url)}</Text>;
+    default:
+      return <Text key={key}>{applyLinkify ? linkifyPaths(seg.content) : seg.content}</Text>;
+  }
+}
+
 function InlineText({ content }: { content: string }): React.ReactElement {
   const parts = splitTextParts(content);
   const cols = getWrapColumns();
@@ -321,24 +337,7 @@ function InlineText({ content }: { content: string }): React.ReactElement {
     const segments = parseInline(content);
     return (
       <Text wrap="wrap">
-        {segments.map((seg, i) => {
-          switch (seg.type) {
-            case 'code':
-              return (
-                <Text key={i} color="cyan">
-                  {linkifyPaths(seg.content)}
-                </Text>
-              );
-            case 'bold':
-              return (
-                <Text key={i} bold>
-                  {seg.content}
-                </Text>
-              );
-            default:
-              return <Text key={i}>{linkifyPaths(seg.content)}</Text>;
-          }
-        })}
+        {segments.map((seg, i) => renderInlineSegment(seg, i))}
       </Text>
     );
   }
@@ -357,16 +356,7 @@ function InlineText({ content }: { content: string }): React.ReactElement {
           const segments = parseInline(formatted);
           return (
             <Text key={i} wrap="wrap">
-              {segments.map((seg, j) => {
-                switch (seg.type) {
-                  case 'code':
-                    return <Text key={j} color="cyan">{seg.content}</Text>;
-                  case 'bold':
-                    return <Text key={j} bold>{seg.content}</Text>;
-                  default:
-                    return <Text key={j}>{seg.content}</Text>;
-                }
-              })}
+              {segments.map((seg, j) => renderInlineSegment(seg, j, false))}
             </Text>
           );
         }
@@ -374,16 +364,7 @@ function InlineText({ content }: { content: string }): React.ReactElement {
         const segments = parseInline(part.content);
         return (
           <Text key={i} wrap="wrap">
-            {segments.map((seg, j) => {
-              switch (seg.type) {
-                case 'code':
-                  return <Text key={j} color="cyan">{linkifyPaths(seg.content)}</Text>;
-                case 'bold':
-                  return <Text key={j} bold>{seg.content}</Text>;
-                default:
-                  return <Text key={j}>{linkifyPaths(seg.content)}</Text>;
-              }
-            })}
+            {segments.map((seg, j) => renderInlineSegment(seg, j))}
           </Text>
         );
       })}

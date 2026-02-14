@@ -1,5 +1,5 @@
 {
-  "name": "Cebus",
+  "name": "cebus",
   "version": "0.1.0",
   "description": "Multi-model group chat CLI - communicate with multiple AI models simultaneously",
   "type": "module",
