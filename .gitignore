@@ -7,7 +7,9 @@ bun.lock
 dist/
 build/
 *.tsbuildinfo
+*.vsix
 cebus
+.turbo/
 
 # Environment files
 .env
@@ -44,16 +46,24 @@ __snapshots__/
 *.temp
 .cache/
 
-# Tests (private)
-tests/
-
 # Claude Code
-.claude/
+.claude/*
+!.claude/skills/
+!.claude/commands/
+
+apps/server/data/
 
 # LangGraph API
 .langgraph_api
+
+# SQLite database
+data/
+*.db
+*.db-journal
+*.db-wal
 
 # Cebus runtime data (logs, checkpoints, transcripts)
 .cebus/*
 !.cebus/prompts/
 !.cebus/agents/
+apps/server/.cebus/sessions/

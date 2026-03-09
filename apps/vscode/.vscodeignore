@@ -1,0 +1,16 @@
+.turbo/
+.env
+.env.*
+src/
+scripts/
+webview-app/
+node_modules/
+*.ts
+!*.d.ts
+esbuild.mjs
+tsconfig.json
+tsconfig.*.json
+.gitignore
+.eslintrc*
+eslint.config.*
+**/*.map

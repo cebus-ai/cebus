@@ -31,21 +31,22 @@ npm install
 
 # 3. Set up environment variables
 #    Copy your API keys into your shell profile or a local .env file
-export OPENAI_API_KEY=your-key
-export ANTHROPIC_API_KEY=your-key
-export GOOGLE_API_KEY=your-key
+cp .env.example .env
+# Edit .env and add at least one API key
 
-# 4. Run in development mode (no build step needed)
-npm run dev
+# 4. Run in development mode
+npm run dev -w apps/cli      # CLI dev mode
+npm run dev                   # Web + Server dev mode
 
 # 5. Verify everything works
-npm run typecheck
-npm run lint
+npm run typecheck    # Type-check all packages
+npm test             # Run all tests (328 across engine + cli)
+npm run lint         # Lint all packages
 ```
 
 ### Windows Users
 
-Run `.\install.cmd` to install dependencies, build, and link the CLI in one step. The GitHub Copilot provider requires PowerShell v6+ (`pwsh`).
+Run `.\install.cmd` to install dependencies, build, and link the CLI. The GitHub Copilot provider requires PowerShell v6+ (`pwsh`).
 
 ## Development Workflow
 
@@ -53,15 +54,16 @@ Run `.\install.cmd` to install dependencies, build, and link the CLI in one step
 
 | Command | Description |
 |---------|-------------|
-| `npm run dev` | Run in development mode (tsx) |
-| `npm run dev:bun` | Run in development mode (Bun) |
-| `npm run build` | Build with tsup |
-| `npm run typecheck` | Type check with tsc |
-| `npm run lint` | Run ESLint |
-| `npm run lint:fix` | Run ESLint with auto-fix |
+| `npm run build` | Build all packages (via Turbo) |
+| `npm run dev` | Dev mode for server + web |
+| `npm run dev -w apps/cli` | Dev mode for CLI |
+| `npm run typecheck` | Type-check all packages |
+| `npm test` | Run all tests (328 across engine + cli) |
+| `npm test -w packages/engine` | Engine tests only (322 tests) |
+| `npm test -w apps/cli` | CLI tests only (6 tests) |
+| `npm run lint` | Lint all packages |
 | `npm run format` | Format with Prettier |
 | `npm run format:check` | Check formatting |
-| `npm run studio` | Launch LangGraph Studio |
 
 ### Branch Naming
 
@@ -103,13 +105,53 @@ npm run format:check # Must match Prettier formatting
 
 ### Path Aliases
 
-The project uses TypeScript path aliases. Always use them for imports:
+Each package uses TypeScript path aliases within its own scope. In `packages/engine`:
 
 ```typescript
 import { ChatSession } from '@core/types.js';
 import { ProviderAdapter } from '@providers/types.js';
-import { TeamConfig } from '@orchestration/types.js';
 ```
+
+In `apps/cli`, import from the engine package:
+
+```typescript
+import { getSession, getMessages } from '@cebus/engine';
+import type { Message, Participant } from '@cebus/engine';
+```
+
+## Testing
+
+### Test Structure
+
+Tests live alongside each package:
+
+```
+packages/engine/tests/      # 322 tests (unit, integration, contract, mocks)
+apps/cli/tests/             # 6 tests (CLI component tests)
+```
+
+### Running Tests
+
+```bash
+# Run all tests (via Turbo)
+npm test
+
+# Run engine tests only
+npm test -w packages/engine
+
+# Run a specific test file
+npm test -w packages/engine -- tests/unit/orchestration/orchestrator/sequential.test.ts
+
+# Watch mode (engine)
+npm run test:watch -w packages/engine
+```
+
+### Writing Tests
+
+- Place unit tests in `packages/engine/tests/unit/` mirroring the `src/` directory structure.
+- Use Vitest's `describe`/`it`/`expect` API.
+- Mock external dependencies (API calls, file system) -- never make real API calls in tests.
+- Each test file should test one module.
 
 ## Pull Request Process
 
@@ -136,7 +178,7 @@ To add support for a new AI provider:
 
 ### 1. Create the Adapter
 
-Create a new file in `src/providers/` (e.g., `src/providers/mistral.ts`). Your adapter must implement the `ProviderAdapter` interface from `src/providers/types.ts`:
+Create a new file in `packages/engine/src/providers/` (e.g., `mistral.ts`). Your adapter must implement the `ProviderAdapter` interface from `packages/engine/src/providers/types.ts`:
 
 ```typescript
 import type { ProviderAdapter, ModelInfo, ContextMessage, CompletionResult, CompletionOptions } from './types.js';
@@ -167,7 +209,7 @@ export class MistralAdapter implements ProviderAdapter {
 
 ### 2. Register the Provider
 
-Add your adapter to the registry in `src/providers/registry.ts`:
+Add your adapter to the registry in `packages/engine/src/providers/registry.ts`:
 
 ```typescript
 import { MistralAdapter } from './mistral.js';
@@ -178,13 +220,17 @@ registry.register(new MistralAdapter());
 
 ### 3. Add Model Tier Classifications
 
-Update `src/core/model-tiers.ts` to classify the provider's models into cost tiers (premium, middle, budget, local).
+Update `packages/engine/src/core/model-tiers.ts` to classify the provider's models into cost tiers (premium, middle, budget, local).
 
 ### 4. Create a LangChain Worker (if applicable)
 
-If the provider has a LangChain integration, add support in `src/orchestration/worker/langchain-worker.ts`. Otherwise, create a dedicated worker similar to `copilot-worker.ts`.
+If the provider has a LangChain integration, add support in `packages/engine/src/orchestration/worker/langchain-worker.ts`. Otherwise, create a dedicated worker similar to `copilot-worker.ts`.
 
-### 5. Update Documentation
+### 5. Add Contract Tests
+
+Add a contract test in `packages/engine/tests/contract/` to verify your adapter complies with the `ProviderAdapter` interface.
+
+### 6. Update Documentation
 
 - Add the provider to the supported providers table in `readme.md`.
 - Add any required environment variables to the configuration section.

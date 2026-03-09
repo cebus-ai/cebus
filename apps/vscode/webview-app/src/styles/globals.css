@@ -1,0 +1,179 @@
+@import 'tailwindcss';
+
+/*
+ * Map Tailwind theme to VS Code CSS variables.
+ * This allows the WebView to seamlessly match the user's VS Code theme.
+ */
+
+@theme {
+  --color-background: var(--vscode-editor-background, #1e1e1e);
+  --color-foreground: var(--vscode-editor-foreground, #d4d4d4);
+  --color-primary: var(--vscode-button-background, #0078d4);
+  --color-primary-foreground: var(--vscode-button-foreground, #ffffff);
+  --color-primary-hover: var(--vscode-button-hoverBackground, #026ec1);
+  --color-secondary: var(--vscode-button-secondaryBackground, #3a3d41);
+  --color-secondary-foreground: var(--vscode-button-secondaryForeground, #d4d4d4);
+  --color-border: var(--vscode-panel-border, #2b2b2b);
+  --color-input-bg: var(--vscode-input-background, #3c3c3c);
+  --color-input-fg: var(--vscode-input-foreground, #cccccc);
+  --color-input-border: var(--vscode-input-border, #3c3c3c);
+  --color-muted: var(--vscode-descriptionForeground, #8b8b8b);
+  --color-badge: var(--vscode-badge-background, #4d4d4d);
+  --color-badge-fg: var(--vscode-badge-foreground, #ffffff);
+  --color-error: var(--vscode-errorForeground, #f48771);
+  --color-success: var(--vscode-terminal-ansiGreen, #89d185);
+}
+
+html,
+body,
+#root {
+  height: 100%;
+}
+
+body {
+  margin: 0;
+  padding: 0;
+  background: var(--color-background);
+  color: var(--color-foreground);
+  font-family: var(--vscode-font-family, 'Segoe UI', sans-serif);
+  font-size: var(--vscode-font-size, 13px);
+}
+
+* {
+  box-sizing: border-box;
+}
+
+/* VS Code-native scrollbar */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+  background: var(--vscode-scrollbarSlider-background, rgba(121, 121, 121, 0.4));
+  border-radius: 3px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: var(--vscode-scrollbarSlider-hoverBackground, rgba(100, 100, 100, 0.7));
+}
+
+::-webkit-scrollbar-thumb:active {
+  background: var(--vscode-scrollbarSlider-activeBackground, rgba(191, 191, 191, 0.4));
+}
+
+/* Bouncing dots animation for typing indicator */
+@keyframes bounce-dot {
+  0%, 80%, 100% {
+    transform: translateY(0);
+    opacity: 0.4;
+  }
+  40% {
+    transform: translateY(-4px);
+    opacity: 1;
+  }
+}
+
+.typing-dot {
+  display: inline-block;
+  width: 5px;
+  height: 5px;
+  border-radius: 50%;
+  background: currentColor;
+  animation: bounce-dot 1.2s ease-in-out infinite;
+}
+
+.typing-dot:nth-child(2) {
+  animation-delay: 0.15s;
+}
+
+.typing-dot:nth-child(3) {
+  animation-delay: 0.3s;
+}
+
+/* Compact prose for sidebar markdown */
+.prose-sidebar h1,
+.prose-sidebar h2,
+.prose-sidebar h3,
+.prose-sidebar h4 {
+  margin-top: 0.5em;
+  margin-bottom: 0.25em;
+  font-size: 1em;
+  font-weight: 600;
+}
+
+.prose-sidebar p {
+  margin-top: 0.25em;
+  margin-bottom: 0.25em;
+}
+
+.prose-sidebar ul,
+.prose-sidebar ol {
+  margin-top: 0.25em;
+  margin-bottom: 0.25em;
+  padding-left: 1.25em;
+}
+
+.prose-sidebar li {
+  margin-top: 0.1em;
+  margin-bottom: 0.1em;
+}
+
+.prose-sidebar pre {
+  margin-top: 0.5em;
+  margin-bottom: 0.5em;
+  padding: 0.5em;
+  border-radius: 4px;
+  background: var(--vscode-textCodeBlock-background, rgba(0, 0, 0, 0.2));
+  overflow-x: auto;
+  font-size: 0.9em;
+}
+
+.prose-sidebar code {
+  padding: 0.1em 0.3em;
+  border-radius: 3px;
+  background: var(--vscode-textCodeBlock-background, rgba(0, 0, 0, 0.2));
+  font-size: 0.9em;
+}
+
+.prose-sidebar pre code {
+  padding: 0;
+  background: none;
+}
+
+.prose-sidebar blockquote {
+  margin: 0.5em 0;
+  padding-left: 0.75em;
+  border-left: 3px solid var(--color-border);
+  color: var(--color-muted);
+}
+
+.prose-sidebar a {
+  color: var(--vscode-textLink-foreground, #3794ff);
+  text-decoration: none;
+}
+
+.prose-sidebar a:hover {
+  text-decoration: underline;
+}
+
+.prose-sidebar table {
+  border-collapse: collapse;
+  margin: 0.5em 0;
+  font-size: 0.9em;
+}
+
+.prose-sidebar th,
+.prose-sidebar td {
+  border: 1px solid var(--color-border);
+  padding: 0.25em 0.5em;
+}
+
+.prose-sidebar img {
+  max-width: 100%;
+  height: auto;
+}

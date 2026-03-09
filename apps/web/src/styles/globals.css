@@ -1,0 +1,174 @@
+@import "tailwindcss";
+
+@theme {
+  --color-sidebar: hsl(240 6% 10%);
+  --color-sidebar-foreground: hsl(240 5% 65%);
+  --color-panel: hsl(240 6% 12%);
+  --color-panel-foreground: hsl(240 5% 85%);
+  --color-background: hsl(240 6% 6%);
+  --color-foreground: hsl(0 0% 95%);
+  --color-border: hsl(240 4% 16%);
+  --color-input: hsl(240 4% 16%);
+  --color-ring: hsl(243 75% 59%);
+  --color-primary: hsl(243 75% 59%);
+  --color-primary-foreground: hsl(0 0% 100%);
+  --color-muted: hsl(240 4% 14%);
+  --color-muted-foreground: hsl(240 5% 55%);
+  --color-accent: hsl(243 75% 59%);
+  --color-accent-foreground: hsl(0 0% 100%);
+  --color-destructive: hsl(0 84% 60%);
+  --color-destructive-foreground: hsl(0 0% 100%);
+}
+
+@layer base {
+  * {
+    border-color: var(--color-border);
+  }
+
+  html, body {
+    overflow: hidden;
+    height: 100%;
+  }
+
+  body {
+    background-color: var(--color-background);
+    color: var(--color-foreground);
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  }
+
+  pre {
+    direction: ltr;
+    unicode-bidi: isolate;
+    text-align: left;
+  }
+}
+
+/*
+ * Light theme: invert the zinc scale so dark-first components
+ * automatically get light backgrounds and dark text.
+ * zinc-950 (darkest bg)   → white
+ * zinc-100 (lightest text) → near-black
+ */
+:root:not(.dark) {
+  --color-zinc-950: #ffffff;
+  --color-zinc-900: #f9fafb;
+  --color-zinc-800: #e4e4e7;
+  --color-zinc-700: #d4d4d8;
+  --color-zinc-600: #71717a;
+  --color-zinc-500: #52525b;
+  --color-zinc-400: #3f3f46;
+  --color-zinc-300: #27272a;
+  --color-zinc-200: #18181b;
+  --color-zinc-100: #09090b;
+  --color-zinc-50: #000000;
+
+  --color-background: #ffffff;
+  --color-foreground: #09090b;
+  --color-border: #e4e4e7;
+  --color-input: #e4e4e7;
+  --color-sidebar: #f9fafb;
+  --color-sidebar-foreground: #3f3f46;
+  --color-panel: #ffffff;
+  --color-panel-foreground: #18181b;
+  --color-muted: #f4f4f5;
+  --color-muted-foreground: #71717a;
+
+  --diff-add-bg: #dcfce7;
+  --diff-add-text: #166534;
+  --diff-add-border: #16a34a;
+  --diff-remove-bg: #fee2e2;
+  --diff-remove-text: #991b1b;
+  --diff-remove-border: #dc2626;
+  --diff-hunk-bg: #dbeafe;
+  --diff-hunk-text: #1e40af;
+  --diff-context-text: #374151;
+  --diff-num: #6b7280;
+  --diff-line-border: rgba(228, 228, 231, 0.5);
+
+  color-scheme: light;
+}
+
+.dark {
+  color-scheme: dark;
+}
+
+:root {
+  --diff-add-bg: rgba(34, 197, 94, 0.1);
+  --diff-add-text: #86efac;
+  --diff-add-border: #22c55e;
+  --diff-remove-bg: rgba(239, 68, 68, 0.1);
+  --diff-remove-text: #fca5a5;
+  --diff-remove-border: #ef4444;
+  --diff-hunk-bg: rgba(59, 130, 246, 0.08);
+  --diff-hunk-text: #60a5fa;
+  --diff-context-text: #a1a1aa;
+  --diff-num: #52525b;
+  --diff-line-border: rgba(63, 63, 70, 0.5);
+}
+
+/* Scrollbar styling */
+::-webkit-scrollbar {
+  width: 6px;
+}
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+::-webkit-scrollbar-thumb {
+  background: var(--color-zinc-700, hsl(240 4% 22%));
+  border-radius: 4px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: var(--color-zinc-600, hsl(240 4% 30%));
+}
+
+/* Wider scrollbar for main chat area */
+.chat-scroll::-webkit-scrollbar {
+  width: 10px;
+}
+.chat-scroll::-webkit-scrollbar-thumb {
+  background: var(--color-zinc-700, hsl(240 4% 22%));
+  border-radius: 5px;
+  border: 2px solid transparent;
+  background-clip: padding-box;
+}
+.chat-scroll::-webkit-scrollbar-thumb:hover {
+  background: var(--color-zinc-600, hsl(240 4% 30%));
+  border: 2px solid transparent;
+  background-clip: padding-box;
+}
+
+/* Glow effect utility */
+.glow-indigo {
+  box-shadow: 0 0 20px hsl(243 75% 59% / 0.15), 0 0 40px hsl(243 75% 59% / 0.05);
+}
+.glow-sm {
+  box-shadow: 0 0 10px hsl(243 75% 59% / 0.1);
+}
+
+/* Glass morphism */
+.glass {
+  background: hsl(240 6% 10% / 0.8);
+  backdrop-filter: blur(12px);
+}
+
+/* Gradient text */
+.gradient-text {
+  background: linear-gradient(135deg, hsl(243 75% 65%), hsl(280 70% 65%));
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+/* Subtle pulse for typing indicators */
+@keyframes pulse-subtle {
+  0%, 100% { opacity: 0.4; }
+  50% { opacity: 1; }
+}
+.animate-pulse-subtle {
+  animation: pulse-subtle 1.5s ease-in-out infinite;
+}
+
+/* Smooth transitions */
+.transition-panel {
+  transition: width 200ms ease, opacity 150ms ease, transform 200ms ease;
+}

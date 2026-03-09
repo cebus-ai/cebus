@@ -1,8 +1,0 @@
-{
-  "node_version": "24",
-  "dependencies": ["."],
-  "graphs": {
-    "orchestration": "./src/orchestration/studio.ts:graph"
-  },
-  "env": ".env"
-}

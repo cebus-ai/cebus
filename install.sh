@@ -47,6 +47,11 @@ else
     echo "  [OK] Added to $SHELL_RC"
 fi
 
+# Build the project
+echo "  Building project..."
+npm run build --quiet
+echo "  [OK] Build complete"
+
 # Create Unix executable
 cat > "$INSTALL_DIR/cebus" << 'EOF'
 #!/bin/bash
@@ -54,9 +59,9 @@ SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 
 # Use Node.js (required for better-sqlite3 support)
 if command -v npx &> /dev/null; then
-    npx tsx "$SCRIPT_DIR/src/cli/index.ts" "$@"
+    npx tsx "$SCRIPT_DIR/apps/cli/src/index.ts" "$@"
 elif command -v node &> /dev/null; then
-    node --import tsx "$SCRIPT_DIR/src/cli/index.ts" "$@"
+    node --import tsx "$SCRIPT_DIR/apps/cli/src/index.ts" "$@"
 else
     echo "Error: Node.js is required"
     echo "Install Node.js: brew install node"

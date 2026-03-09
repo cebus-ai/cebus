@@ -1,0 +1,7 @@
+{
+  "name": "@cebus/tsconfig",
+  "version": "0.0.0",
+  "private": true,
+  "license": "MIT",
+  "files": ["base.json", "react.json", "node.json"]
+}

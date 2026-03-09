@@ -1,0 +1,41 @@
+{
+  "name": "@cebus/server",
+  "version": "0.2.0",
+  "description": "Cebus API server — Fastify + tRPC",
+  "type": "module",
+  "main": "dist/index.js",
+  "scripts": {
+    "dev": "node --disable-warning=ExperimentalWarning --import tsx --watch src/index.ts",
+    "build": "tsup",
+    "start": "node --disable-warning=ExperimentalWarning dist/index.js",
+    "test": "vitest run",
+    "typecheck": "tsc --noEmit",
+    "lint": "eslint src"
+  },
+  "dependencies": {
+    "@cebus/engine": "*",
+    "@fastify/cors": "^11.2.0",
+    "@fastify/helmet": "^13.0.2",
+    "@fastify/multipart": "^9.4.0",
+    "@fastify/rate-limit": "^10.3.0",
+    "@fastify/static": "^9.0.0",
+    "@fastify/websocket": "^11.2.0",
+    "@trpc/server": "^11.12.0",
+    "better-auth": "^1.5.3",
+    "better-sqlite3": "^12.6.2",
+    "dotenv": "^17.3.1",
+    "fastify": "^5.8.1",
+    "ulid": "^3.0.2",
+    "zod": "^4.3.6"
+  },
+  "devDependencies": {
+    "@types/better-sqlite3": "^7.6.13",
+    "@types/node": "^25.3.3",
+    "tsup": "^8.5.1",
+    "tsx": "^4.21.0",
+    "typescript": "^5.9.3"
+  },
+  "engines": {
+    "node": ">=24.0.0"
+  }
+}

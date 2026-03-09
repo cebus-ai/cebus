@@ -9,7 +9,7 @@
 process.title = 'Cebus';
 process.stdout.write('\x1b]0;Cebus\x07');
 
-import('../dist/cli/index.js')
+import('../apps/cli/dist/cli/index.js')
   .then(({ main }) => main())
   .catch((error) => {
     console.error('Error:', error.message);

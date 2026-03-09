@@ -5,7 +5,7 @@
 [![TypeScript](https://img.shields.io/badge/TypeScript-5.x-blue.svg)](https://www.typescriptlang.org/)
 <!-- [![CI](https://github.com/cebus-ai/cebus/actions/workflows/ci.yml/badge.svg)](https://github.com/cebus-ai/cebus/actions/workflows/ci.yml) -->
 ![Welcome](docs/assets/welcome.png)
-A multi-model group chat CLI that lets you communicate with multiple AI models simultaneously in a single conversation.
+A multi-model group chat platform that lets you communicate with multiple AI models simultaneously in a single conversation. Available as a terminal CLI and a web application.
 
 > **Why "Cebus"?** Cebus is a genus of capuchin monkeys — small, highly intelligent primates known for their remarkable problem-solving abilities and collaborative social behavior. Capuchins work together in groups, use tools, and learn from each other. Cebus (the project) brings that same collaborative intelligence to AI: multiple models working together, each contributing their strengths, to solve problems no single model could handle as well alone.
 
@@ -19,24 +19,33 @@ Built on [LangGraph](https://github.com/langchain-ai/langgraphjs) for orchestrat
 
 ## Features
 
-- **Multi-Model Conversations** — Chat with OpenAI, Anthropic, Google Gemini, GitHub Copilot, and Ollama models in the same session
+- **Multi-Model Conversations** — Chat with OpenAI, Anthropic, Google Gemini, GitHub Copilot, Ollama, and OpenRouter models in the same session
+- **Three Interfaces** — Terminal CLI, Web UI (Vite/React/Tailwind), and VS Code extension
 - **Chat Modes** — Choose how models interact:
   - *All at Once* — All models respond simultaneously
   - *One by One* — Models take turns responding sequentially
   - *Mention Only* — Models respond only when @mentioned
   - *Role-Based* — Assign specialized roles to each model (developer, QA, designer, etc.)
-- **Role-Based Teams** — In role-based mode, models are assigned roles from built-in templates or custom `.cebus/agents/*.agent.md` files (e.g. Software Engineer, System Architect, Security Reviewer, Product Manager, UX Designer, Task Planner)
-- **AI Orchestrator** — Optional middleware that analyzes messages, orchestrates multi-round agent discussions, and presents plans for complex tasks. Opt-in during onboarding with a user-selectable model (free with Ollama)
+  - *Raw* — Direct model access without orchestration overhead
+- **Web UI** — Channel-based messaging with threads, inbox, and direct messages. Rich content blocks (polls, charts, forms, quizzes, Mermaid diagrams, code blocks, diff views). i18n support (en/he) with RTL layout
+- **VS Code Extension** — Embedded webview with chat, Copilot CLI auto-discovery, and native `vscode.lm` API integration
+- **File Attachments** — Paste images and files directly into chat with drag-and-drop support
+- **LiveCanvas** — Interactive diagram navigation with transformation controls
+- **Role-Based Teams** — In role-based mode, models are assigned roles from built-in templates or custom `.cebus/agents/*.agent.md` files. Drag-and-drop reordering for agents and channels
 - **Cost Tiers** — Models are categorized as premium, middle, budget, or local to help you pick the right balance of cost and capability
 - **Flexible Addressing** — Broadcast to all models or @mention specific ones
-- **Real-Time Streaming** — See responses as they're generated
+- **Real-Time Streaming** — See responses as they're generated with cancellation support
 - **Interactive Onboarding** — Choose cost tier, models, chat mode, and roles at startup
 - **Session Management** — Add, remove, or rename participants mid-conversation
-- **Project Context** — Models can be aware of your current project (CLAUDE.md, git branch, directory structure)
-- **URL Fetching** — Optionally fetch web content from URLs in your messages
+- **Project Context** — Models can be aware of your current project (CLAUDE.md, git branch, directory structure) with configurable folder access and working directory
 - **Session Persistence** — Save and resume previous conversations
-- **LangGraph Orchestration** — Hub-and-spoke architecture with sequential, tag-only, free-chat, and dynamic orchestrator modes
+- **LangGraph Orchestration** — Hub-and-spoke architecture with sequential, tag-only, free-chat, raw, dynamic orchestrator, and team leader modes. Context overflow handling with automatic model switching
 - **MCP Tool Support** — Connect MCP servers for tool-augmented conversations
+- **AI Orchestrator** — Optional middleware that analyzes messages, orchestrates multi-round agent discussions, and presents plans for complex tasks. Opt-in during onboarding with a user-selectable model (free with Ollama)
+- **Team Leader Mode** — An advanced orchestration mode where a visible AI facilitator ("Team Leader") manages the group discussion. The TL appears in the conversation timeline, explains its reasoning, asks the user to choose a strategy (round-table discussion vs. divide-and-conquer), orchestrates multi-round collaboration through structured phases (clarify → plan → deliberate → execute → review → synthesize), and drives toward a unified output. Supports user interrupts (stop, skip, restart) and budget-aware guardrails
+- **Copilot SDK Integration** — Native integration with GitHub Copilot via `@github/copilot-sdk`. SDK-managed sessions with built-in tools (file editing, shell, search), automatic context compaction, tool approval workflow, and session resumption — no MCP configuration needed
+- **OpenRouter Gateway** — Multi-provider access through OpenRouter with BYOK support and credit tracking
+- **Cost Tracking** — Per-model token and cost breakdown in the exit summary. Three-layer pricing resolution (user override, daily cache, built-in defaults). Context window utilization percentage shown during compaction
 - **Externalized Prompts** — System prompts, mode instructions, and tier guidance live in `.md` files editable at runtime
 
 
@@ -221,8 +230,8 @@ npm install
 # 3. Rebuild native modules
 npm rebuild better-sqlite3
 
-# 4. Run directly (no build needed)
-npm run dev
+# 4. Run the CLI directly (no build needed)
+npm run dev -w apps/cli
 ```
 
 This keeps you in the project directory but doesn't require building.
@@ -245,9 +254,9 @@ cat > cebus << 'EOF'
 #!/bin/bash
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 if command -v npx &> /dev/null; then
-    npx tsx "$SCRIPT_DIR/src/cli/index.ts" "$@"
+    npx tsx "$SCRIPT_DIR/apps/cli/src/index.ts" "$@"
 elif command -v node &> /dev/null; then
-    node --import tsx "$SCRIPT_DIR/src/cli/index.ts" "$@"
+    node --import tsx "$SCRIPT_DIR/apps/cli/src/index.ts" "$@"
 else
     echo "Error: Node.js is required"
     exit 1
@@ -282,7 +291,7 @@ if ($currentPath -notlike "*$cebusDir*") {
 # 4. Create a cebus.cmd wrapper
 @"
 @echo off
-node "%~dp0dist\cli\index.js" %*
+node "%~dp0apps\cli\dist\cli\index.js" %*
 "@ | Out-File -FilePath "cebus.cmd" -Encoding ASCII
 ```
 
@@ -291,6 +300,10 @@ After restarting your terminal, you can run `cebus` from anywhere.
 ### Development mode (no build needed)
 
 ```bash
+# CLI
+npm run dev -w apps/cli
+
+# Web + Server
 npm run dev
 ```
 
@@ -549,6 +562,7 @@ When using interactive mode (`-i`), the onboarding guides you through:
 | **One by One** (`sequential`) | Models take turns responding in sequence |
 | **Mention Only** (`tag_only`) | Models respond only when you @mention them |
 | **Role-Based** (`role_based`) | Models are assigned roles and respond in sequence with role-specific instructions |
+| **Raw** (`raw`) | Direct model access without orchestration overhead |
 
 ### In-Chat Commands
 
@@ -595,13 +609,15 @@ When `.cebus/agents/` files exist, they replace the built-in roles during role a
 
 ## Supported Providers
 
-| Provider  | Models                                           | Authentication        |
-| --------- | ------------------------------------------------ | --------------------- |
-| OpenAI    | GPT-5.2, GPT-5.1, GPT-4.1, GPT-4o              | `OPENAI_API_KEY`      |
-| Anthropic | Claude Opus 4.6/4.5, Sonnet 4.5, Haiku 4.5      | `ANTHROPIC_API_KEY`   |
-| Gemini    | Gemini 3 Pro/Flash, 2.5 Pro/Flash, 2.0 Flash    | `GOOGLE_API_KEY`      |
-| Copilot   | GPT-5.2 Codex, Claude Opus 4.6, Sonnet 4.5      | GitHub CLI (`gh auth`)|
-| Ollama    | Llama, Mistral, Gemma, CodeLlama, any local model| Local (no key needed) |
+| Provider    | Models                                           | Authentication          |
+| ----------- | ------------------------------------------------ | ----------------------- |
+| OpenAI      | GPT-5.2, GPT-5.1, GPT-4.1, GPT-4o              | `OPENAI_API_KEY`        |
+| Anthropic   | Claude Opus 4.6/4.5, Sonnet 4.5, Haiku 4.5      | `ANTHROPIC_API_KEY`     |
+| Gemini      | Gemini 3 Pro/Flash, 2.5 Pro/Flash, 2.0 Flash    | `GOOGLE_API_KEY`        |
+| Copilot     | GPT-5.2 Codex, Claude Opus 4.6, Sonnet 4.5      | GitHub CLI (`gh auth`)  |
+| Ollama      | Llama, Mistral, Gemma, CodeLlama, any local model| Local (no key needed)   |
+| OpenRouter  | Multi-provider gateway (any model)               | `OPENROUTER_API_KEY`    |
+| VS Code LM  | Native `vscode.lm` API (Copilot models)         | VS Code extension       |
 
 ### Cost Tiers
 
@@ -616,21 +632,29 @@ Models are automatically categorized into cost tiers:
 
 ## Development
 
+Cebus is a Turbo monorepo with npm workspaces:
+
+```
+packages/engine/   # @cebus/engine — core orchestration engine
+apps/cli/          # @cebus/cli — terminal UI (Ink/React)
+apps/web/          # @cebus/web — browser UI (Vite/React/Tailwind)
+apps/server/       # @cebus/server — API server (tRPC + WebSocket)
+apps/vscode/       # cebus-vscode — VS Code extension
+```
+
 ```bash
-# Run in development mode
-npm run dev
+# Monorepo commands (via Turbo)
+npm run build        # Build all packages
+npm run dev          # Dev mode (server + web)
+npm test             # Run all tests
+npm run typecheck    # Type-check all packages
+npm run lint         # Lint all packages
 
-# Type check
-npm run typecheck
-
-# Lint
-npm run lint
-
-# Build
-npm run build
-
-# Launch LangGraph Studio
-npm run studio
+# Package-specific
+npm test -w packages/engine      # Engine tests only
+npm test -w apps/cli             # CLI tests only
+npm run dev -w apps/web          # Vite dev server (port 5173)
+npm run dev -w apps/cli          # CLI dev mode
 ```
 
 ### Debug Mode
@@ -649,52 +673,50 @@ Debug logs are written to `.cebus/debug.log`.
 
 ## Architecture
 
+Turbo monorepo with npm workspaces:
+
 ```
-src/
-├── cli/                    # CLI interface (Ink/React)
-│   ├── app.tsx             # Main chat application
-│   ├── commands/           # CLI command handlers
-│   ├── components/         # React/Ink UI components
-│   │   ├── Onboarding.tsx  # Onboarding flow (tier, models, mode, roles)
-│   │   ├── MessageInput.tsx # Input + @mention autocomplete with role display
-│   │   ├── ParticipantList.tsx # Participant list with role labels
-│   │   └── ...             # ChatView, ExitSummary, Streaming, ToolApproval
-│   └── ui/                 # Terminal utilities
-├── core/                   # Core logic
-│   ├── types.ts            # TypeScript types (ChatMode, Participant, Message)
-│   ├── session.ts          # Session management
-│   ├── mention-parser.ts   # @mention parsing
-│   ├── role-templates.ts   # Role templates + .cebus/agents/ auto-detection
-│   ├── model-tiers.ts      # Cost tier classification
-│   ├── context-config.ts   # Project context configuration
-│   ├── project-context.ts  # Project context gathering
-│   ├── session-persistence.ts # Save/resume sessions
-│   └── ...                 # message, web-fetch, etc.
-├── orchestration/          # LangGraph orchestration engine
-│   ├── graph.ts            # LangGraph state machine
-│   ├── state.ts            # Graph state definitions
-│   ├── types.ts            # Orchestration types (TeamConfig, AgentProfile)
-│   ├── prompts/            # Externalized prompt files (.md, editable at runtime)
-│   │   ├── system.md       # Base system prompt
-│   │   ├── modes/          # Chat mode instructions (free-chat, sequential, tag-only, role-based)
-│   │   └── tiers/          # Model tier guidance (budget, middle, premium, local)
-│   ├── config/             # Team config, prompt loaders, schema
-│   ├── session/            # Config builder, graph cache, store sync, checkpointer
-│   ├── orchestrator/         # Routing strategies (sequential, tag-only, free-chat, dynamic)
-│   ├── worker/             # LangChain + Copilot workers, MCP gateway, budget tracker
-│   └── observability/      # Tracing and logging
-├── providers/              # AI provider adapters
-│   ├── openai.ts           # OpenAI adapter
-│   ├── anthropic.ts        # Anthropic adapter
-│   ├── gemini.ts           # Google Gemini adapter
-│   ├── copilot.ts          # GitHub Copilot adapter (SDK-based)
-│   ├── ollama.ts           # Ollama adapter
-│   └── registry.ts         # Provider registry
-└── config/                 # Configuration management
-    ├── index.ts            # Config loader
-    └── schema.ts           # Zod validation schemas
+packages/
+└── engine/                 # @cebus/engine — core orchestration engine
+    └── src/
+        ├── core/           # Types, session, message, mention-parser, model-tiers, model-pricing
+        ├── orchestration/  # LangGraph state machine, routing strategies, workers
+        │   ├── config/     # Team config, prompt loaders, Zod schema
+        │   ├── session/    # Config builder, graph cache, checkpointer, compaction
+        │   ├── orchestrator/ # Sequential, tag-only, free-chat, dynamic routing, team leader
+        │   ├── worker/     # Three worker types + MCP gateway, budget tracker
+        │   │   ├── langchain-worker    # DEFAULT — OpenAI, Anthropic, Gemini, Ollama
+        │   │   ├── copilot-worker      # SDK-native — GitHub Copilot (built-in tools)
+        │   │   ├── provider-adapter    # Fallback via CEBUS_USE_PROVIDER_ADAPTER=true
+        │   │   └── shared/             # Message attribution + timeout guard
+        │   └── observability/ # Tracing and logging
+        ├── providers/      # AI provider adapters (OpenAI, Anthropic, Gemini, Copilot, Ollama, OpenRouter)
+        └── config/         # Configuration management
+
+apps/
+├── cli/                    # @cebus/cli — terminal UI (Ink/React)
+│   └── src/
+│       ├── commands/       # CLI command handlers (chat, interactive)
+│       ├── components/     # React/Ink UI components (Onboarding, MessageInput, etc.)
+│       ├── hooks/          # React hooks + stream event handlers
+│       └── ui/             # Terminal utilities (colors)
+├── web/                    # @cebus/web — browser UI (Vite/React/Tailwind)
+│   └── src/
+│       ├── components/     # React components (layout, chat, rich-blocks, etc.)
+│       ├── hooks/          # Custom hooks (useAuth, useChannel, useMessages, etc.)
+│       ├── lib/            # Auth, i18n, tRPC client, WebSocket client
+│       └── styles/         # Tailwind globals
+├── server/                 # @cebus/server — API server (tRPC + WebSocket)
+└── vscode/                 # cebus-vscode — VS Code extension
+    ├── src/                # Extension host (engine, chat, copilot, MCP, tools)
+    └── webview-app/        # Embedded React webview (Vite + Tailwind)
 
 .cebus/
+├── prompts/                # Externalized prompt files (editable at runtime)
+│   ├── system.md           # Base system prompt
+│   ├── modes/              # Chat mode instructions
+│   ├── tiers/              # Model tier guidance
+│   └── orchestrator/       # Orchestrator + Team Leader prompts (analyzer, evaluator, team-leader, clarify, deliberate, review, synthesize, ask-user)
 └── agents/                 # Custom agent role definitions (optional)
     └── *.agent.md          # YAML frontmatter + markdown instructions
 ```

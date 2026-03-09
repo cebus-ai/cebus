@@ -1,0 +1,16 @@
+{
+  "extends": "@cebus/tsconfig/node.json",
+  "compilerOptions": {
+    "outDir": "dist",
+    "rootDir": "src",
+    "baseUrl": "src",
+    "paths": {
+      "@core/*": ["core/*"],
+      "@providers/*": ["providers/*"],
+      "@orchestration/*": ["orchestration/*"],
+      "@config/*": ["config/*"]
+    }
+  },
+  "include": ["src/**/*"],
+  "exclude": ["node_modules", "dist"]
+}

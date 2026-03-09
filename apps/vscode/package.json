@@ -1,0 +1,403 @@
+{
+  "name": "cebus-vscode",
+  "displayName": "Cebus — Multi-Model Group Chat",
+  "description": "Orchestrate multiple AI models directly from VS Code",
+  "version": "0.2.0",
+  "publisher": "cebus-ai",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/cebus-ai/cebus.git",
+    "directory": "apps/vscode"
+  },
+  "engines": {
+    "vscode": "^1.96.0",
+    "node": ">=24.0.0"
+  },
+  "categories": [
+    "AI",
+    "Chat"
+  ],
+  "icon": "icon.png",
+  "activationEvents": [],
+  "main": "./dist/extension.js",
+  "scripts": {
+    "build": "node esbuild.mjs --production && node scripts/copy-externals.mjs && npm run build:webview",
+    "build:extension": "node esbuild.mjs --production && node scripts/copy-externals.mjs",
+    "build:webview": "vite build --config webview-app/vite.config.ts",
+    "dev": "node esbuild.mjs --watch",
+    "dev:webview": "vite build --watch --config webview-app/vite.config.ts",
+    "typecheck": "tsc --noEmit",
+    "lint": "eslint src",
+    "package": "npm run build && vsce package --no-dependencies",
+    "install:extension": "vsce package --no-dependencies && node scripts/install-vsix.mjs"
+  },
+  "contributes": {
+    "chatParticipants": [
+      {
+        "id": "cebus.chat",
+        "name": "cebus",
+        "fullName": "Cebus Group Chat",
+        "description": "Multi-model group chat — ask multiple AI models simultaneously",
+        "isSticky": false,
+        "commands": [
+          {
+            "name": "models",
+            "description": "Select which models to include"
+          },
+          {
+            "name": "mode",
+            "description": "Set chat mode (free_chat, sequential, tag_only, role_based)"
+          },
+          {
+            "name": "context",
+            "description": "Set workspace context level (none, minimal, full)"
+          }
+        ],
+        "disambiguation": [
+          {
+            "category": "multi-model",
+            "description": "User wants to ask multiple AI models the same question or compare model responses",
+            "examples": [
+              "Ask Claude and GPT about this code",
+              "Get opinions from multiple models",
+              "Compare model responses for this prompt",
+              "What do different AI models think about this?"
+            ]
+          },
+          {
+            "category": "group-chat",
+            "description": "User wants a group discussion between AI models",
+            "examples": [
+              "Start a group chat about refactoring this module",
+              "Have the models debate the best approach",
+              "Get a code review from multiple AI models"
+            ]
+          }
+        ]
+      }
+    ],
+    "languageModelTools": [
+      {
+        "name": "cebus_getGitStatus",
+        "displayName": "Git Status",
+        "modelDescription": "Returns current git branch, modified files, staged files, and untracked files in the workspace.",
+        "canBeReferencedInPrompt": true,
+        "toolReferenceName": "getGitStatus",
+        "icon": "$(git-branch)",
+        "inputSchema": { "type": "object", "properties": {} }
+      },
+      {
+        "name": "cebus_getGitDiff",
+        "displayName": "Git Diff",
+        "modelDescription": "Returns the unified diff of all unstaged changes in the workspace.",
+        "canBeReferencedInPrompt": true,
+        "toolReferenceName": "getGitDiff",
+        "icon": "$(diff)",
+        "inputSchema": { "type": "object", "properties": {} }
+      },
+      {
+        "name": "cebus_getFileDiff",
+        "displayName": "File Diff",
+        "modelDescription": "Returns the diff of a specific file compared to HEAD.",
+        "canBeReferencedInPrompt": true,
+        "toolReferenceName": "getFileDiff",
+        "icon": "$(diff-single)",
+        "inputSchema": {
+          "type": "object",
+          "properties": {
+            "filePath": { "type": "string", "description": "Relative path to the file. If omitted, uses the active editor." }
+          }
+        }
+      },
+      {
+        "name": "cebus_openDiffView",
+        "displayName": "Open Diff View",
+        "modelDescription": "Opens the VS Code diff editor for a file compared to HEAD.",
+        "canBeReferencedInPrompt": true,
+        "toolReferenceName": "openDiffView",
+        "icon": "$(diff-editor)",
+        "inputSchema": {
+          "type": "object",
+          "properties": {
+            "filePath": { "type": "string", "description": "Relative path to the file. If omitted, uses the active editor." }
+          }
+        }
+      },
+      {
+        "name": "cebus_getGitLog",
+        "displayName": "Git Log",
+        "modelDescription": "Returns recent git commits with hash, message, author, and date.",
+        "canBeReferencedInPrompt": true,
+        "toolReferenceName": "getGitLog",
+        "icon": "$(git-commit)",
+        "inputSchema": {
+          "type": "object",
+          "properties": {
+            "maxEntries": { "type": "number", "description": "Maximum number of log entries (default: 10)" }
+          }
+        }
+      },
+      {
+        "name": "cebus_getOpenFiles",
+        "displayName": "Open Files",
+        "modelDescription": "Returns a list of all currently open editor tabs with their file paths.",
+        "canBeReferencedInPrompt": true,
+        "toolReferenceName": "getOpenFiles",
+        "icon": "$(files)",
+        "inputSchema": { "type": "object", "properties": {} }
+      },
+      {
+        "name": "cebus_openFile",
+        "displayName": "Open File",
+        "modelDescription": "Opens a file in the editor.",
+        "canBeReferencedInPrompt": true,
+        "toolReferenceName": "openFile",
+        "icon": "$(go-to-file)",
+        "inputSchema": {
+          "type": "object",
+          "properties": {
+            "filePath": { "type": "string", "description": "Relative path to the file to open" }
+          },
+          "required": ["filePath"]
+        }
+      },
+      {
+        "name": "cebus_getDiagnostics",
+        "displayName": "Get Diagnostics",
+        "modelDescription": "Returns all errors, warnings, and hints from the current workspace grouped by file.",
+        "canBeReferencedInPrompt": true,
+        "toolReferenceName": "getDiagnostics",
+        "icon": "$(warning)",
+        "inputSchema": { "type": "object", "properties": {} }
+      },
+      {
+        "name": "cebus_searchFiles",
+        "displayName": "Search Files",
+        "modelDescription": "Finds files matching a glob pattern in the workspace (respects .gitignore).",
+        "canBeReferencedInPrompt": true,
+        "toolReferenceName": "searchFiles",
+        "icon": "$(search)",
+        "inputSchema": {
+          "type": "object",
+          "properties": {
+            "pattern": { "type": "string", "description": "Glob pattern (e.g., \"**/*.ts\", \"src/**/*.tsx\")" },
+            "maxResults": { "type": "number", "description": "Maximum number of results (default: 50)" }
+          },
+          "required": ["pattern"]
+        }
+      },
+      {
+        "name": "cebus_getSymbols",
+        "displayName": "Get Symbols",
+        "modelDescription": "Returns functions, classes, methods, and other symbols defined in a file.",
+        "canBeReferencedInPrompt": true,
+        "toolReferenceName": "getSymbols",
+        "icon": "$(symbol-method)",
+        "inputSchema": {
+          "type": "object",
+          "properties": {
+            "filePath": { "type": "string", "description": "Relative path to the file. If omitted, uses the active editor." }
+          }
+        }
+      },
+      {
+        "name": "cebus_getWorkspaceFiles",
+        "displayName": "Workspace Files",
+        "modelDescription": "Returns a list of all files in the workspace (respects .gitignore, limited to 200).",
+        "canBeReferencedInPrompt": true,
+        "toolReferenceName": "getWorkspaceFiles",
+        "icon": "$(folder-opened)",
+        "inputSchema": {
+          "type": "object",
+          "properties": {
+            "maxResults": { "type": "number", "description": "Maximum number of files (default: 200)" }
+          }
+        }
+      },
+      {
+        "name": "cebus_readFile",
+        "displayName": "Read File",
+        "modelDescription": "Reads the content of a file in the workspace (100KB limit).",
+        "canBeReferencedInPrompt": true,
+        "toolReferenceName": "readFile",
+        "icon": "$(file-code)",
+        "inputSchema": {
+          "type": "object",
+          "properties": {
+            "filePath": { "type": "string", "description": "Relative path to the file" }
+          },
+          "required": ["filePath"]
+        }
+      },
+      {
+        "name": "cebus_getActiveFile",
+        "displayName": "Active File",
+        "modelDescription": "Returns the currently active editor file path, language, selection, and full content.",
+        "canBeReferencedInPrompt": true,
+        "toolReferenceName": "getActiveFile",
+        "icon": "$(file)",
+        "inputSchema": { "type": "object", "properties": {} }
+      }
+    ],
+    "viewsContainers": {
+      "activitybar": [
+        {
+          "id": "cebus-sidebar",
+          "title": "Cebus",
+          "icon": "media/icon-sidebar.svg"
+        }
+      ]
+    },
+    "views": {
+      "cebus-sidebar": [
+        {
+          "type": "webview",
+          "id": "cebus.groupChat",
+          "name": "Group Chat"
+        }
+      ]
+    },
+    "commands": [
+      {
+        "command": "cebus.configureApiKeys",
+        "title": "Cebus: Configure API Keys"
+      },
+      {
+        "command": "cebus.selectModels",
+        "title": "Cebus: Select Models"
+      },
+      {
+        "command": "cebus.newSession",
+        "title": "Cebus: New Chat Session"
+      },
+      {
+        "command": "cebus.setChatMode",
+        "title": "Cebus: Set Chat Mode"
+      },
+      {
+        "command": "cebus.openGroupChat",
+        "title": "Cebus: Open Group Chat",
+        "icon": {
+          "light": "media/icon-terminal.svg",
+          "dark": "media/icon-terminal.svg"
+        }
+      },
+      {
+        "command": "cebus.copilotStatus",
+        "title": "Cebus: Copilot CLI Status"
+      },
+      {
+        "command": "cebus.openInTab",
+        "title": "Cebus: Open Chat in Editor Tab",
+        "icon": {
+          "light": "media/icon-terminal.svg",
+          "dark": "media/icon-terminal.svg"
+        }
+      },
+      {
+        "command": "cebus.setContextLevel",
+        "title": "Cebus: Set Context Level"
+      },
+      {
+        "command": "cebus.approveToolUse",
+        "title": "Cebus: Approve Tool Use"
+      }
+    ],
+    "keybindings": [
+      {
+        "command": "cebus.openInTab",
+        "key": "ctrl+shift+g",
+        "mac": "cmd+shift+g"
+      }
+    ],
+    "menus": {
+      "terminal/title": [
+        {
+          "command": "cebus.openGroupChat",
+          "group": "navigation"
+        }
+      ],
+      "view/title": [
+        {
+          "command": "cebus.openInTab",
+          "when": "view == cebus.groupChat",
+          "group": "navigation"
+        }
+      ]
+    },
+    "configuration": {
+      "title": "Cebus",
+      "properties": {
+        "cebus.defaultModels": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "default": [],
+          "description": "Default models for new sessions (e.g. ['openai/gpt-4o', 'anthropic/claude-sonnet-4-5-20250514'])"
+        },
+        "cebus.chatMode": {
+          "type": "string",
+          "enum": [
+            "free_chat",
+            "sequential",
+            "tag_only",
+            "role_based"
+          ],
+          "default": "free_chat",
+          "description": "Default chat mode for new sessions"
+        },
+        "cebus.contextLevel": {
+          "type": "string",
+          "enum": [
+            "none",
+            "minimal",
+            "full"
+          ],
+          "default": "minimal",
+          "description": "How much workspace context to include in prompts"
+        },
+        "cebus.modelBackend": {
+          "type": "string",
+          "enum": [
+            "hybrid",
+            "vscode_lm",
+            "copilot_cli_sdk"
+          ],
+          "default": "hybrid",
+          "description": "Model source: hybrid (all providers), vscode_lm (VS Code language models), or copilot_cli_sdk (Copilot CLI SDK provider only)"
+        },
+        "cebus.copilot.cliPath": {
+          "type": "string",
+          "default": "",
+          "description": "Explicit path to the Copilot CLI binary (auto-detected if empty)"
+        },
+        "cebus.copilot.autoStart": {
+          "type": "boolean",
+          "default": true,
+          "description": "Automatically start the shared Copilot CLI server on activation"
+        }
+      }
+    }
+  },
+  "dependencies": {
+    "@cebus/engine": "*"
+  },
+  "devDependencies": {
+    "@tailwindcss/vite": "^4.2.1",
+    "@types/node": "^25.3.3",
+    "@types/react": "^19.2.14",
+    "@types/react-dom": "^19.2.3",
+    "@types/vscode": "^1.109.0",
+    "@vitejs/plugin-react": "^5.1.4",
+    "@vscode/vsce": "^3.7.1",
+    "esbuild": "^0.27.3",
+    "react": "^19.2.4",
+    "react-dom": "^19.2.4",
+    "react-markdown": "^10.1.0",
+    "tailwindcss": "^4.2.1",
+    "typescript": "^5.9.3",
+    "vite": "^7.3.1"
+  }
+}

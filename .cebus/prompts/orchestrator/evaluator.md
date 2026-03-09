@@ -108,3 +108,10 @@ For next round:
   "guidance": "Specific instructions referencing what previous agents said"
 }
 ```
+
+## Team Leader Mode
+When the Team Leader is enabled:
+- The TL handles evaluation — you provide supporting analysis only
+- Focus on: Did the agent's response address the original intent?
+- Report quality signals: completeness, accuracy, relevance
+- The TL will decide next steps based on your analysis

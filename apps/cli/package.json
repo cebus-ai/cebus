@@ -1,0 +1,39 @@
+{
+  "name": "@cebus/cli",
+  "version": "0.2.0",
+  "description": "Multi-model group chat CLI - communicate with multiple AI models simultaneously",
+  "type": "module",
+  "main": "dist/cli/index.js",
+  "bin": {
+    "cebus": "./bin/cebus.js"
+  },
+  "files": [
+    "dist",
+    "bin"
+  ],
+  "scripts": {
+    "dev": "node --disable-warning=ExperimentalWarning --import tsx src/index.ts",
+    "start": "node --disable-warning=ExperimentalWarning --import tsx src/index.ts",
+    "build": "tsup",
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run",
+    "lint": "eslint src"
+  },
+  "dependencies": {
+    "@cebus/engine": "*",
+    "dotenv": "^17.3.1",
+    "ink": "^6.8.0",
+    "ink-spinner": "^5.0.0",
+    "react": "^19.2.4"
+  },
+  "devDependencies": {
+    "@types/node": "^25.3.3",
+    "@types/react": "^19.2.14",
+    "tsup": "^8.5.1",
+    "tsx": "^4.21.0",
+    "typescript": "^5.9.3"
+  },
+  "engines": {
+    "node": ">=24.0.0"
+  }
+}
